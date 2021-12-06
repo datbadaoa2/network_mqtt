@@ -8,65 +8,62 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-public class Client_4
-{
-    final static int ServerPort = 1234;
+public class Client_4 {
 
-    public static void main(String args[]) throws UnknownHostException, IOException
-    {
-        Scanner scn = new Scanner(System.in);
+  final static int ServerPort = 1234;
 
-        // getting localhost ip
-        InetAddress ip = InetAddress.getByName("localhost");
+  public static void main(String args[]) throws UnknownHostException, IOException {
+    Scanner scn = new Scanner(System.in);
 
-        // establish the connection
-        Socket s = new Socket(ip, ServerPort);
+    // getting localhost ip
+    InetAddress ip = InetAddress.getByName("localhost");
 
-        // obtaining input and out streams
-        DataInputStream dis = new DataInputStream(s.getInputStream());
-        DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+    // establish the connection
+    Socket s = new Socket(ip, ServerPort);
 
-        // sendMessage thread
-        Thread sendMessage = new Thread(new Runnable()
-        {
-            @Override
-            public void run() {
-                while (true) {
+    // obtaining input and out streams
+    DataInputStream dis = new DataInputStream(s.getInputStream());
+    DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
-                    // read the message to deliver.
-                    String msg = scn.nextLine();
+    // sendMessage thread
+    Thread sendMessage = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while (true) {
 
-                    try {
-                        // write on the output stream
-                        dos.writeUTF(msg);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
+          // read the message to deliver.
+          String msg = scn.nextLine();
 
-        // readMessage thread
-        Thread readMessage = new Thread(new Runnable()
-        {
-            @Override
-            public void run() {
+          try {
+            // write on the output stream
+            dos.writeUTF(msg);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    });
 
-                while (true) {
-                    try {
-                        // read the message sent to this client
-                        String msg = dis.readUTF();
-                        System.out.println(msg);
-                    } catch (IOException e) {
+    // readMessage thread
+    Thread readMessage = new Thread(new Runnable() {
+      @Override
+      public void run() {
 
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
+        while (true) {
+          try {
+            // read the message sent to this client
+            String msg = dis.readUTF();
+            System.out.println(msg);
+          } catch (IOException e) {
 
-        sendMessage.start();
-        readMessage.start();
+            e.printStackTrace();
+          }
+        }
+      }
+    });
 
-    }
+    sendMessage.start();
+    readMessage.start();
+
+  }
 }

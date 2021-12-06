@@ -1,78 +1,77 @@
 package btl;
 
-import java.io.*;
-import java.net.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
-public class Client_0
-{
-    final static int ServerPort = 1234;
-    static String type = new String("publish");
-    static String topic = new String("topic");
+public class Client_0 {
 
-    public static void main(String args[]) throws UnknownHostException, IOException
-    {
-        Scanner scn = new Scanner(System.in);
+  final static int ServerPort = 1234;
+  static String type = new String("publish");
+  static String topic = new String("topic");
 
-        InetAddress ip = InetAddress.getByName("localhost");
+  public static void main(String args[]) throws UnknownHostException, IOException {
+    Scanner scn = new Scanner(System.in);
 
-        Socket s = new Socket(ip, ServerPort);
+    InetAddress ip = InetAddress.getByName("localhost");
 
-        DataInputStream dis = new DataInputStream(s.getInputStream());
-        DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+    Socket s = new Socket(ip, ServerPort);
 
-        // sendMessage thread
-        Thread sendMessage = new Thread(new Runnable()
-        {
-            @Override
-            public void run() {
-                while (true) {
-                    // read the message to deliver.
-                    String msg = scn.nextLine();
-                    // subscribe#topic
-                    // publish#topic
-                    try {
-                        if (msg.startsWith("publish#")) {
-                            StringTokenizer st = new StringTokenizer(msg, "#");
-                            type = st.nextToken();
-                            topic = st.nextToken();
-                        }
-                        else if (msg.startsWith("subscribe#")) {
-                            StringTokenizer st = new StringTokenizer(msg, "#");
-                            type = st.nextToken();
-                            topic = st.nextToken();
-                        }
-                        else {
-                            msg = msg + "#" + topic;
-                        }
-                        dos.writeUTF(msg);
-                        System.out.println("type of message:" + msg + "-----topic:" + topic);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+    DataInputStream dis = new DataInputStream(s.getInputStream());
+    DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+
+    // sendMessage thread
+    Thread sendMessage = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while (true) {
+          // read the message to deliver.
+          String msg = scn.nextLine();
+          // subscribe#topic
+          // publish#topic
+          try {
+            if (msg.startsWith("publish#")) {
+              StringTokenizer st = new StringTokenizer(msg, "#");
+              type = st.nextToken();
+              topic = st.nextToken();
+            } else if (msg.startsWith("subscribe#")) {
+              StringTokenizer st = new StringTokenizer(msg, "#");
+              type = st.nextToken();
+              topic = st.nextToken();
+            } else {
+              msg = msg + "#" + topic;
             }
-        });
+            dos.writeUTF(msg);
+            System.out.println("type of message:" + msg + "-----topic:" + topic);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    });
 
-        // readMessage thread
-        Thread readMessage = new Thread(new Runnable()
-        {
-            @Override
-            public void run() {
+    // readMessage thread
+    Thread readMessage = new Thread(new Runnable() {
+      @Override
+      public void run() {
 
-                while (true) {
-                    try {
-                        String msg = dis.readUTF();
-                        System.out.println(msg);
-                    } catch (IOException e) {
+        while (true) {
+          try {
+            String msg = dis.readUTF();
+            System.out.println(msg);
+          } catch (IOException e) {
 
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-        sendMessage.start();
-        readMessage.start();
-    }
+            e.printStackTrace();
+          }
+        }
+      }
+    });
+    sendMessage.start();
+    readMessage.start();
+  }
 }
