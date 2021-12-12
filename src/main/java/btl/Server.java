@@ -13,42 +13,29 @@ import java.util.Vector;
 
 // Server class
 public class Server {
-
-  // Vector to store active clients
   static Vector<ClientHandler> ar = new Vector<>();
-
-  // counter for clients
   static int i = 0;
 
   public static void main(String[] args) throws IOException {
-    // server is listening on port 1234
     ServerSocket ss = new ServerSocket(1234);
 
     Socket s;
 
-    // running infinite loop for getting
-    // client request
     while (true) {
       s = ss.accept();
       System.out.println("New client request received : " + s);
-      // obtain input and output streams
       DataInputStream dis = new DataInputStream(s.getInputStream());
       DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
       System.out.println("Creating a new handler for this client...");
+      ClientHandler mtch = new ClientHandler(s, "client " + i, dis, dos, "publish", "default");
 
-      // Create a new handler object for handling this request.
-      ClientHandler mtch = new ClientHandler(s, "client " + i, dis, dos, "publish", "topic");
-
-      // Create a new Thread with this object.
       Thread t = new Thread(mtch);
-
       System.out.println("Adding this client to active client list");
 
       ar.add(mtch);
       t.start();
       i++;
-
     }
   }
 }
@@ -60,12 +47,13 @@ class ClientHandler implements Runnable {
   private String name;
   private String type;
   private String topic;
+  private Vector<String> subscribe_topics = new Vector<>();
+  private Vector<String> publish_topics = new Vector<>();
   final DataInputStream dis;
   final DataOutputStream dos;
   Socket s;
   boolean isloggedin;
 
-  // constructor
   public ClientHandler(Socket s, String name, DataInputStream dis, DataOutputStream dos,
       String type, String topic) {
     this.dis = dis;
@@ -73,6 +61,7 @@ class ClientHandler implements Runnable {
     this.name = name;
     this.type = type;
     this.topic = topic;
+    this.publish_topics.add(topic);;
     this.s = s;
     this.isloggedin = true;
   }
@@ -83,7 +72,6 @@ class ClientHandler implements Runnable {
     while (true) {
       try {
         received = dis.readUTF();
-
         System.out.println(received);
 
         if (received.equals("logout")) {
@@ -92,22 +80,43 @@ class ClientHandler implements Runnable {
           break;
         }
 
-        // break the string into message and recipient part
-        if (received.startsWith("publish#") || received.startsWith("subscribe#")) {
-          StringTokenizer st = new StringTokenizer(received, "#");
-          this.type = st.nextToken();
-          this.topic = st.nextToken();
-          System.out.println(this.name + "---" + this.topic + "---" + this.type);
+        StringTokenizer st = new StringTokenizer(received, "#");
+        String cur_type = st.nextToken();
+        this.topic = st.nextToken();
+
+        if (received.startsWith("publish#")) {
+          this.type = cur_type;
+          if (!this.publish_topics.contains(this.topic)) {
+            this.publish_topics.add(this.topic);
+            this.subscribe_topics.clear();
+          }
+        } else
+
+        if (received.startsWith("unpublish#")) {
+          if (this.publish_topics.contains(this.topic)) this.publish_topics.remove(this.topic);
+        } else
+
+        if (received.startsWith("subscribe#")) {
+          this.type = cur_type;
+          if (!this.subscribe_topics.contains(this.topic)) {
+            System.out.println(this.topic);
+            this.subscribe_topics.add(this.topic);
+            this.publish_topics.clear();
+          }
+        } else
+
+        if (received.startsWith("unsubscribe#")) {
+          if (this.subscribe_topics.contains(this.topic)) this.subscribe_topics.remove(this.topic);
         } else {
-          StringTokenizer st = new StringTokenizer(received, "#");
-          String MsgToSend = st.nextToken();
-          String topic_client = st.nextToken();
-//                    System.out.println(Server.ar);
           for (ClientHandler mc : Server.ar) {
-            if (mc.type.equals("subscribe") && mc.topic.equals(topic_client)
-                && mc.isloggedin == true) {
-              System.out.println(mc.name + "---" + mc.topic + "---" + mc.type);
-              mc.dos.writeUTF(this.name + " : " + MsgToSend);
+            if (mc.type.equals("subscribe")) {
+              System.out.println(mc.name);
+              for (String tp : mc.subscribe_topics) {
+                if (tp.equals(this.topic) && mc.isloggedin == true) {
+                  System.out.println(mc.name + "--" + mc.topic + "--" + mc.type);
+                  mc.dos.writeUTF(this.name + ": " + cur_type);
+                }
+              }
             }
           }
         }
