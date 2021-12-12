@@ -82,37 +82,40 @@ class ClientHandler implements Runnable {
 
         StringTokenizer st = new StringTokenizer(received, "#");
         String cur_type = st.nextToken();
-        this.topic = st.nextToken();
+        String cur_topic = st.nextToken();
 
         if (received.startsWith("publish#")) {
           this.type = cur_type;
-          if (!this.publish_topics.contains(this.topic)) {
-            this.publish_topics.add(this.topic);
+          this.topic = cur_topic;
+          if (!this.publish_topics.contains(cur_topic)) {
+            this.publish_topics.add(cur_topic);
             this.subscribe_topics.clear();
           }
         } else
 
         if (received.startsWith("unpublish#")) {
-          if (this.publish_topics.contains(this.topic)) this.publish_topics.remove(this.topic);
+          if (this.publish_topics.contains(cur_topic)) this.publish_topics.remove(cur_topic);
         } else
 
         if (received.startsWith("subscribe#")) {
           this.type = cur_type;
-          if (!this.subscribe_topics.contains(this.topic)) {
-            System.out.println(this.topic);
-            this.subscribe_topics.add(this.topic);
+          this.topic = cur_topic;
+          if (!this.subscribe_topics.contains(cur_topic)) {
+            this.subscribe_topics.add(cur_topic);
             this.publish_topics.clear();
           }
         } else
 
         if (received.startsWith("unsubscribe#")) {
-          if (this.subscribe_topics.contains(this.topic)) this.subscribe_topics.remove(this.topic);
-        } else {
+          if (this.subscribe_topics.contains(cur_topic)) this.subscribe_topics.remove(cur_topic);
+        } else
+        if (this.publish_topics.contains(cur_topic))
+        {
           for (ClientHandler mc : Server.ar) {
             if (mc.type.equals("subscribe")) {
               System.out.println(mc.name);
               for (String tp : mc.subscribe_topics) {
-                if (tp.equals(this.topic) && mc.isloggedin == true) {
+                if (tp.equals(cur_topic) && mc.isloggedin == true) {
                   System.out.println(mc.name + "--" + mc.topic + "--" + mc.type);
                   mc.dos.writeUTF(this.name + ": " + cur_type);
                 }

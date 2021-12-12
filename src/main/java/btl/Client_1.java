@@ -47,7 +47,7 @@ public class Client_1 {
               topic = st.nextToken();
             }
             dos.writeUTF(msg);
-            System.out.println("message: " + mes + "  ->>> sent to topic:" + topic);
+            System.out.println("debug -> message: " + mes + "  sent to topic:" + topic);
           } catch (IOException e) {
             e.printStackTrace();
           }

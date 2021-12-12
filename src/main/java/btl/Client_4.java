@@ -7,36 +7,47 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 
 public class Client_4 {
 
   final static int ServerPort = 1234;
+  static String type = new String("publish");
+  static String topic = new String("default");
 
   public static void main(String args[]) throws UnknownHostException, IOException {
     Scanner scn = new Scanner(System.in);
-
-    // getting localhost ip
     InetAddress ip = InetAddress.getByName("localhost");
-
-    // establish the connection
     Socket s = new Socket(ip, ServerPort);
 
-    // obtaining input and out streams
     DataInputStream dis = new DataInputStream(s.getInputStream());
     DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
-    // sendMessage thread
     Thread sendMessage = new Thread(new Runnable() {
       @Override
       public void run() {
         while (true) {
-
-          // read the message to deliver.
-          String msg = scn.nextLine();
-
+          String msg = scn.nextLine(), mes = "";
+          // subscribe#topic
+          // publish#topic
           try {
-            // write on the output stream
+            if (!msg.contains("#")) {
+              System.out.println("message must container #. Format: publish#topic, subscribe#topic, message#topic");
+              continue;
+            }
+            if (msg.startsWith("subscribe#") || msg.startsWith("publish#")) {
+              StringTokenizer st = new StringTokenizer(msg, "#");
+              type = st.nextToken();
+              topic = st.nextToken();
+            } else
+            if (type.equals("publish"))
+            {
+              StringTokenizer st = new StringTokenizer(msg, "#");
+              mes = st.nextToken();
+              topic = st.nextToken();
+            }
             dos.writeUTF(msg);
+            System.out.println("debug -> message: " + mes + "  sent to topic:" + topic);
           } catch (IOException e) {
             e.printStackTrace();
           }
@@ -44,26 +55,20 @@ public class Client_4 {
       }
     });
 
-    // readMessage thread
     Thread readMessage = new Thread(new Runnable() {
       @Override
       public void run() {
-
         while (true) {
           try {
-            // read the message sent to this client
             String msg = dis.readUTF();
             System.out.println(msg);
           } catch (IOException e) {
-
             e.printStackTrace();
           }
         }
       }
     });
-
     sendMessage.start();
     readMessage.start();
-
   }
 }
