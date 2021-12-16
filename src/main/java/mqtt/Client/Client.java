@@ -15,7 +15,7 @@ public class Client {
     private Socket socket;
     private List<String> topics;
     protected IOHandler ioHandler;
-    protected final String clientID;
+    protected String clientID;
 
     public Client(String serverIP, int port) {
         this.clientID = UUID.randomUUID().toString();
@@ -32,7 +32,11 @@ public class Client {
         }
     }
 
-    private void connect() throws Exception {
+    public String getClientID() {
+        return clientID;
+    }
+
+    void connect() throws Exception {
         Message message = new Message(ControlPacketType.CONNECT, this.clientID);
         ioHandler.sendMessage(message);
         ioHandler.waitForAck();
