@@ -1,6 +1,6 @@
-package btl;// Java implementation of  Server side
+package mqtt;// Java implementation of  Server side
 // It contains two classes : Server and ClientHandler
-// Save file as Server.java
+// Save file as Server_Dat.java
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -12,8 +12,8 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 
 // Server class
-public class Server {
-  static Vector<ClientHandler> ar = new Vector<>();
+public class Server_Dat {
+  static Vector<ClientHandler_Dat> ar = new Vector<>();
   static int i = 0;
 
   public static void main(String[] args) throws IOException {
@@ -28,7 +28,7 @@ public class Server {
       DataOutputStream dos = new DataOutputStream(s.getOutputStream());
 
       System.out.println("Creating a new handler for this client...");
-      ClientHandler mtch = new ClientHandler(s, "client " + i, dis, dos, "publish", "default");
+      ClientHandler_Dat mtch = new ClientHandler_Dat(s, "client " + i, dis, dos, "publish", "default");
 
       Thread t = new Thread(mtch);
       System.out.println("Adding this client to active client list");
@@ -41,7 +41,7 @@ public class Server {
 }
 
 // ClientHandler class
-class ClientHandler implements Runnable {
+class ClientHandler_Dat implements Runnable {
 
   Scanner scn = new Scanner(System.in);
   private String name;
@@ -54,8 +54,8 @@ class ClientHandler implements Runnable {
   Socket s;
   boolean isloggedin;
 
-  public ClientHandler(Socket s, String name, DataInputStream dis, DataOutputStream dos,
-      String type, String topic) {
+  public ClientHandler_Dat(Socket s, String name, DataInputStream dis, DataOutputStream dos,
+                           String type, String topic) {
     this.dis = dis;
     this.dos = dos;
     this.name = name;
@@ -111,7 +111,7 @@ class ClientHandler implements Runnable {
         } else
         if (this.publish_topics.contains(cur_topic))
         {
-          for (ClientHandler mc : Server.ar) {
+          for (ClientHandler_Dat mc : Server_Dat.ar) {
             if (mc.type.equals("subscribe")) {
               System.out.println(mc.name);
               for (String tp : mc.subscribe_topics) {

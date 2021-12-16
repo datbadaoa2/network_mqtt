@@ -1,4 +1,4 @@
-package btl;
+package mqtt;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -9,7 +9,7 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
-public class Client_1 {
+public class Client_0 {
 
   final static int ServerPort = 1234;
   static String type = new String("publish");
