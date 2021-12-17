@@ -5,6 +5,8 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.9'
 }
 
 repositories {
@@ -18,7 +20,34 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 }
 
+javafx {
+    version = "16"
+    modules = [ 'javafx.controls' ]
+}
+
 group = 'org.example'
 version = '1.0-SNAPSHOT'
 description = 'MQTT'
 java.sourceCompatibility = JavaVersion.VERSION_1_8
+
+
+//mainClassName = 'ui.PublisherForm'
+mainClassName = 'ui.SubscriberForm'
+//mainClassName = 'ui.HelloFX'
+
+//task runWithJavaExec(type: JavaExec) {
+//    group = "Execution"
+//    description = "Run the main class with JavaExecTask"
+//    classpath = sourceSets.main.runtimeClasspath
+//    main = 'ui.PublisherForm'
+//}
+
+//apply plugin: 'java'
+//
+//task(runSimple, dependsOn: 'classes', type: JavaExec) {
+//    main = 'ui'
+//    classpath = sourceSets.main.runtimeClasspath
+////    args 'mrhaki'
+//    systemProperty 'PublisherForm', 'SubscriberForm'
+//}
+
