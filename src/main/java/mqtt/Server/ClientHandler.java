@@ -2,6 +2,7 @@ package mqtt.Server;
 
 import mqtt.Message.ControlPacketType;
 import mqtt.Message.Message;
+import mqtt.Topic.Topic;
 import mqtt.utils.IOHandler;
 import mqtt.utils.JsonParser;
 
@@ -11,24 +12,17 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class ClientHandler implements Runnable{
     private final long WAIT_PING_MS = 60000;
-    private final Socket clientSocket;
     private Map<String, ClientHandler> clientHandlerMap;
-    private Map<String, Set<String>> topicSet;
-    private Map<String, Set<String>> subscriberSet;
     private BlockingQueue<String> messages;
     private IOHandler ioHandler;
     private long mostRecentPing;
     private String clientID = null;
 
-    public ClientHandler(Socket clientSocket, Map<String, Set<String>> topicSet, Map<String, Set<String>> subscriberSet,
-                         BlockingQueue<String> messages, Map<String, ClientHandler> clientHandlerMap){
-        this.clientSocket = clientSocket;
-        this.topicSet = topicSet;
-        this.subscriberSet = subscriberSet;
+    public ClientHandler(Socket clientSocket, BlockingQueue<String> messages,
+                         Map<String, ClientHandler> clientHandlerMap){
         this.messages = messages;
         this.mostRecentPing = System.currentTimeMillis();
         this.clientHandlerMap = clientHandlerMap;
@@ -52,29 +46,35 @@ public class ClientHandler implements Runnable{
         ioHandler.sendMessage(message);
     }
 
-    private String generateMessagePayload(String sender, String receiver, String message){
+    private String generateMessagePayload(String sender, String receiver, String message, String topic){
         JsonParser jsonParser = JsonParser.getInstance();
 
         Map<String, String> map = new HashMap<String, String>();
         map.put("sender", sender);
         map.put("receiver", receiver);
         map.put("message", message);
+        map.put("topic", topic);
 
         return jsonParser.serialize(map);
     }
 
-    private void publish(String payload){
+    private void publish(String payload) throws Exception {
         JsonParser jsonParser = JsonParser.getInstance();
         Map<String, String> map = jsonParser.deserialize(payload);
 
         String sender = map.get("client_id");
-        String topic = map.get("topic");
+        String topicName = map.get("topic");
         String publishMessage = map.get("message");
 
-        for (String cid: subscriberSet.get(topic)){
-            System.out.println("PUBLISH " + publishMessage + " from " + sender + " to " + cid);
-            String messagePayload = generateMessagePayload(sender, cid, publishMessage);
-            messages.add(messagePayload);
+        Topic[] topics = Server.topicRoot.parse(topicName);
+
+        for (Topic topic: topics){
+            Map <String, ClientHandler> subscribers = topic.getSubscribers();
+            for (String subscriber: subscribers.keySet()){
+                String message = generateMessagePayload(sender, subscriber,
+                                                        publishMessage, topic.getAbsolutePath(""));
+                messages.add(message);
+            }
         }
     }
 
@@ -83,18 +83,17 @@ public class ClientHandler implements Runnable{
         ioHandler.sendMessage(message);
     }
 
-    private void subscribe(String payload){
+    private void subscribe(String payload) throws Exception {
         JsonParser jsonParser = JsonParser.getInstance();
         Map<String, String> map = jsonParser.deserialize(payload);
 
         String clientID = map.get("client_id");
         String topic = map.get("topic");
 
-        Set<String> topics = topicSet.computeIfAbsent(clientID, k -> new HashSet<String>());
-        topics.add(topic);
+        Topic[] topics = Server.topicRoot.parse(topic);
 
-        Set<String> clients = subscriberSet.computeIfAbsent(topic, k -> new HashSet<String>());
-        clients.add(clientID);
+        assert topics.length == 1;
+        topics[0].addSubscriber(clientID, this);
     }
 
     private void suback(){
@@ -102,18 +101,17 @@ public class ClientHandler implements Runnable{
         ioHandler.sendMessage(message);
     }
 
-    private void unsub(String payload){
+    private void unsub(String payload) throws Exception {
         JsonParser jsonParser = JsonParser.getInstance();
         Map<String, String> map = jsonParser.deserialize(payload);
 
         String clientID = map.get("client_id");
         String topic = map.get("topic");
 
-        Set<String> topics = topicSet.computeIfAbsent(clientID, k -> new HashSet<String>());
-        topics.remove(clientID);
+        Topic[] topics = Server.topicRoot.parse(topic);
 
-        Set<String> clients = subscriberSet.computeIfAbsent(topic, k -> new HashSet<String>());
-        clients.remove(topic);
+        assert topics.length == 1;
+        topics[0].removeSubscriber(clientID);
     }
 
     private void unsuback(){
@@ -145,29 +143,35 @@ public class ClientHandler implements Runnable{
             ControlPacketType controlPacketType = message.getControlPacketType();
             String payload = message.getPayload();
 
-            switch (controlPacketType){
-                case CONNECT:
-                    connect(payload);
-                    connack();
-                    break;
-                case PUBLISH:
-                    publish(payload);
-                    puback();
-                    break;
-                case SUBSCRIBE:
-                    subscribe(payload);
-                    suback();
-                    break;
-                case UNSUB:
-                    unsub(payload);
-                    unsuback();
-                    break;
-                case PING:
-                    ping();
-                    pingack();
-                    break;
-                default:
-                    break;
+            try {
+                switch (controlPacketType) {
+                    case CONNECT:
+                        connect(payload);
+                        connack();
+                        break;
+                    case PUBLISH:
+                        publish(payload);
+                        puback();
+                        break;
+                    case SUBSCRIBE:
+                        subscribe(payload);
+                        suback();
+                        break;
+                    case UNSUB:
+                        unsub(payload);
+                        unsuback();
+                        break;
+                    case PING:
+                        ping();
+                        pingack();
+                        break;
+                    default:
+                        break;
+                }
+            } catch (Exception e){
+                Message exceptionMessage = new Message(ControlPacketType.EXCEPTION, e.getMessage());
+                ioHandler.sendMessage(exceptionMessage);
+                e.printStackTrace();
             }
         }
     }

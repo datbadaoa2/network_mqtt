@@ -1,7 +1,7 @@
 package mqtt.Message;
 
 public enum ControlPacketType {
-    RESERVED,
+    EXCEPTION,
     CONNECT,
     CONNACK,
     PUBLISH,
