@@ -22,3 +22,10 @@ group = 'org.example'
 version = '1.0-SNAPSHOT'
 description = 'MQTT'
 java.sourceCompatibility = JavaVersion.VERSION_1_8
+
+task runMQTTServer(type: JavaExec) {
+    group = "Execution"
+    description = "Run the MQTT Server"
+    classpath = sourceSets.main.runtimeClasspath
+    main = "test.ServerTest"
+}
