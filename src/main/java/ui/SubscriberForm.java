@@ -2,8 +2,6 @@ package ui;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -22,6 +20,7 @@ import mqtt.Message.Message;
 import mqtt.utils.JsonParser;
 
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 
 public class SubscriberForm extends Application {
@@ -68,23 +67,33 @@ public class SubscriberForm extends Application {
         textArea.positionCaret(4);
         pane.add(textArea, 1, 5);
 
-        SubButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                try {
-                    String cmd = topic.getText();
-                    subscriber.subscribe(cmd);
-                    if (cmd != "")
-                        textArea.appendText("Subscribe to topic: " + cmd + "\n");
-                    topic.clear();
-                } catch (Exception e){
-                    e.printStackTrace();
-                    textArea.appendText(e + "\n");
-                }
+        SubButton.setOnAction(t -> {
+            try {
+                String cmd = topic.getText();
+                subscriber.subscribe(cmd);
+                if (cmd != "")
+                    textArea.appendText("Subscribe to topic: " + cmd + "\n");
+                topic.clear();
+            } catch (Exception e){
+                e.printStackTrace();
+                textArea.appendText(e + "\n");
             }
         });
 
-        new Thread(() -> {
+        UnsubButton.setOnAction(t -> {
+            try {
+                String cmd = topic.getText();
+                subscriber.unsubscribe(cmd);
+                if (cmd != "")
+                    textArea.appendText("Unsubscribe to topic: " + cmd + "\n");
+                topic.clear();
+            } catch (Exception e){
+                e.printStackTrace();
+                textArea.appendText(e + "\n");
+            }
+        });
+
+        Thread thread_sub = new Thread(() -> {
             try {
                 while (true) {
                     Message message = subscriber.receive();
@@ -92,37 +101,39 @@ public class SubscriberForm extends Application {
                     JsonParser jsonParser = JsonParser.getInstance();
                     Map<String, String> map = jsonParser.deserialize(message.getPayload());
                     String ReceivedMessage = map.get("message");
-                    Platform.runLater(() -> {
-                        synchronized(textArea) {
-                            textArea.appendText("Receive message from server: " + ReceivedMessage + "\n");
+                    final CountDownLatch latch = new CountDownLatch(1);
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                textArea.appendText("Receive message from server: " + ReceivedMessage + "\n");
+                            }finally{
+                                latch.countDown();
+                            }
                         }
                     });
+                    latch.await();
+//                    Platform.runLater(() -> {
+//                        synchronized(textArea) {
+//                            textArea.appendText("Receive message from server: " + ReceivedMessage + "\n");
+//                        }
+//                    });
                 }
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
-        }).start();
+        });
+        thread_sub.start();
+//        try {
+//            thread_sub.join();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    private void connect() {
-        try {
-            while (true){
-                Message message = subscriber.receive();
-                System.out.println(message);
-                Platform.runLater(() -> {
-                    synchronized(textArea) {
-                        textArea.appendText(message + "\n");
-                    }
-                });
-            }
-        } catch (Exception e){
-            e.printStackTrace();
-            textArea.appendText(e + "\n");
-        }
-    }
     public static void main(String[] args) {
         launch();
     }

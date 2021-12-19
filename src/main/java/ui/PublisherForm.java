@@ -70,6 +70,7 @@ public class PublisherForm extends Application {
                 try {
                     publisher.publish(topic.getText(),message.getText());
                     String cmd = message.getText();
+                    System.out.println(cmd);
                     textArea.appendText(cmd + "\n");
                     message.clear();
                 } catch (Exception e){
