@@ -7,7 +7,7 @@ public class SubscriberTest {
     public static void main(String[] args){
         Subscriber subscriber = new Subscriber("localhost", 1234);
         try {
-            subscriber.subscribe("abc/xyz");
+            subscriber.subscribe("+");
             while (true){
                 Message message = subscriber.receive();
                 System.out.println(message.getPayload());

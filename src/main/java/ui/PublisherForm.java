@@ -1,8 +1,7 @@
 package ui;
 
 import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -22,6 +21,8 @@ import mqtt.Client.Publisher;
 public class PublisherForm extends Application {
     private TextArea textArea;
     private TextField textField;
+    private Thread thread_pug;
+
 
     @Override
     public void start(Stage primaryStage) {
@@ -64,21 +65,49 @@ public class PublisherForm extends Application {
         textArea.positionCaret(4);
         pane.add(textArea, 1, 5);
 
-        SendButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                try {
-                    publisher.publish(topic.getText(),message.getText());
-                    String cmd = message.getText();
-                    System.out.println(cmd);
-                    textArea.appendText(cmd + "\n");
-                    message.clear();
-                } catch (Exception e){
-                    e.printStackTrace();
-                    textArea.appendText(e.toString() + "\n");
+        SendButton.setOnAction(t -> {
+                if(thread_pug != null){
+                    thread_pug.interrupt();
                 }
-            }
+                thread_pug = new Thread(() -> {
+                    try {
+                        publisher.publish(topic.getText(),message.getText());
+                        String cmd = message.getText();
+                        System.out.println(cmd);
+                        message.clear();
+//                        final CountDownLatch latch = new CountDownLatch(1);
+                        Platform.runLater(() -> {
+                            try {
+                                textArea.appendText(cmd + "\n");
+                            } finally {
+//                                latch.countDown();
+                            }
+                        });
+//                        latch.await();
+                    } catch (Exception e) {
+                        System.out.println(e.getMessage());
+                    }
+                });
+                thread_pug.start();
+                try {
+                    thread_pug.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
         });
+
+//        SendButton.setOnAction(t -> {
+//            try {
+//                publisher.publish(topic.getText(),message.getText());
+//                String cmd = message.getText();
+//                System.out.println(cmd);
+//                textArea.appendText(cmd + "\n");
+//                message.clear();
+//            } catch (Exception e){
+//                e.printStackTrace();
+//                textArea.appendText(e.toString() + "\n");
+//            }
+//        });
 
         primaryStage.setScene(scene);
         primaryStage.show();
